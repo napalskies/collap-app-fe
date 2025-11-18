@@ -5,17 +5,19 @@ import './App.css';
 // import { debounce } from 'lodash';
 import DocumentComponent from './components/DocumentComponent';
 import SignalRProvider from './providers/SignalRProvider';
+import { useState } from 'react';
 
 function App() {
    const documentId = "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+   const [firstDocument, toggleDocument] = useState(true);
   return (
     <div className="App">
-      <header className="App-header">
           <SignalRProvider>
-              <DocumentComponent documentId={documentId}/>
-              <DocumentComponent documentId={'c6f9dee8-2655-4db6-8460-c794a6e817cf'}/>
+              {firstDocument && <DocumentComponent documentId={documentId}/>}
+              {!firstDocument &&
+              <DocumentComponent documentId={'c6f9dee8-2655-4db6-8460-c794a6e817cf'}/>}
             </SignalRProvider>
-      </header>
+            <button onClick={() => toggleDocument(!firstDocument)}>Toggle Document</button>
     </div>
   );
 }
