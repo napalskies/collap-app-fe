@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+build/
+dist/
+coverage/
+out/
+.cache/
+.tmp/
+
+# Framework-specific (harmless if not present)
+.next/
+
+# Minified or lock files
+*.min.*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
