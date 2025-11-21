@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState, useContext } from 'react';
+import { useEffect, useRef, useState, useContext } from 'react';
 import axios from 'axios';
 
-import { debounce, forEach } from 'lodash';
+import { debounce, set, throttle } from 'lodash';
 import { SignalRContext } from '../providers/SignalRProvider';
 
 function DocumentComponent(props) {
@@ -9,6 +9,9 @@ function DocumentComponent(props) {
   const documentId = props.documentId;
   const [inputText, setInputText] = useState('');
   const [activeUsers, setActiveUsers] = useState([]);
+  //const [isTyping, setIsTyping] = useState(false);
+  //const [userTyping, setUserTyping] = useState('');
+  const inputRef = useRef(null);
 
   useEffect(() => {
     async function initInput() {
@@ -25,10 +28,10 @@ function DocumentComponent(props) {
     const joinWhenConnected = async () => {
       await connectionReady;
       if (connectionContext.state === 'Connected') {
-        console.log(connectionContext.state);
         await connectionContext.invoke('JoinDocument', documentId);
       }
-      console.log('New user has joined document.');
+      console.log(connectionContext.connectionId);
+      console.log(getRandomColor(connectionContext.connectionId));
     };
 
     joinWhenConnected().catch((err) => console.error('Error in invoking JoinDocument:', err));
@@ -55,7 +58,6 @@ function DocumentComponent(props) {
   const handleDocumentChanged = useRef(
     debounce(async (newValue) => {
       try {
-        console.log('Invoking SendChange with value: ', newValue);
         await connectionContext.invoke('SendChange', documentId, newValue);
       } catch (err) {
         console.error('Invoke failed: ', err);
@@ -63,37 +65,50 @@ function DocumentComponent(props) {
     }, 200),
   );
 
+  // const indicateTypingStart = useRef(
+  //   throttle(async () => {
+  //     await connectionContext.invoke('UserIsTyping', documentId, true);
+  //   }, 1000),
+  // ).current;
+
+  // const indicateTypingEnd = useRef(
+  //   debounce(async () => {
+  //     await connectionContext.invoke('UserIsTyping', documentId, false);
+  //   }, 1500),
+  // ).current;
+
+  // const onType = () => {
+  //   indicateTypingStart();
+  //   indicateTypingEnd();
+  // };
+
+  // useEffect(() => {
+  //   return () => {
+  //     indicateTypingStart.cancel();
+  //     indicateTypingEnd.cancel();
+  //   };
+  // }, []);
+
   useEffect(() => {
-    console.log(documentId + ' mounted');
     const debouncedFn = handleDocumentChanged.current;
     const onDocumentChanged = (change) => {
-      console.log(change);
       setInputText(change);
     };
 
     connectionContext.on('DocumentChanged' + documentId, onDocumentChanged);
 
     return () => {
-      console.log('Cleaning up handlers');
-
       debouncedFn.cancel();
-      connectionContext.off('DocumentChanged' + documentId, onDocumentChanged); //, onDocumentChanged);
-      console.log(documentId + ' unmounted');
+      connectionContext.off('DocumentChanged' + documentId, onDocumentChanged);
     };
   }, [connectionContext, documentId]);
 
   useEffect(() => {
     const onUserConnected = (connectionId) => {
-      // console.log(activeUsers);
-      // setActiveUsers( [...activeUsers, connectionId] );
       console.log(`User ${connectionId} connected!`);
-      // console.log(activeUsers);
     };
     const onUserDisconnected = (connectionId) => {
       console.log(`User ${connectionId} disconnected!`);
-      // console.log(activeUsers);
-      // if(activeUsers.find(connectionId))
-      //     setActiveUsers(activeUsers.filter(user => user !== connectionId));
     };
 
     connectionContext.on('UserConnected', onUserConnected);
@@ -106,9 +121,7 @@ function DocumentComponent(props) {
   }, [connectionContext]);
 
   useEffect(() => {
-    console.log('Active users updated: ', activeUsers);
     const onActiveUsersUpdated = (users) => {
-      console.log('Received active users: ', users);
       setActiveUsers(users);
     };
     connectionContext.on('ActiveUsersUpdated' + documentId, onActiveUsersUpdated);
@@ -116,35 +129,85 @@ function DocumentComponent(props) {
     return () => {
       connectionContext.off('ActiveUsersUpdated' + documentId, onActiveUsersUpdated);
     };
-  }, [activeUsers, documentId, connectionContext]);
+  }, [documentId, connectionContext]);
 
   useEffect(() => {
     return () => {
-      console.log(connectionContext.state);
       if (connectionContext.state === 'Connected') {
-        console.log('Goodbye im unmounting' + documentId);
         const onLeaveDocument = async () => {
           await connectionContext.invoke('LeaveDocument', documentId);
-          console.log('Just invoked LeaveDocument');
         };
         onLeaveDocument().catch((err) => console.error('Error in invoking LeaveDocument:', err));
       }
     };
   }, [connectionContext, documentId]);
 
+  // useEffect(() => {
+  //   const onOtherUsersTyping = (userId, isTyping) => {
+  //     console.log(`User ${userId} is typing: ${isTyping}`);
+  //     setUserTyping(userId);
+  //     setIsTyping(isTyping);
+  //   };
+  //   connectionContext.on('OtherUserTyping' + documentId, onOtherUsersTyping);
+
+  //   return () => {
+  //     connectionContext.off('OtherUserTyping' + documentId, onOtherUsersTyping);
+  //   };
+  // }, [documentId, connectionContext]);
+
+  const getRandomColor = (user) => {
+    var hash = 0;
+    for (var i = 0; i < user.length; i++) {
+      hash = user.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    var color = (hash & 0x00fffff).toString(16).toUpperCase();
+    return '#' + '00000'.substring(0, 6 - color.length) + color;
+  };
+
+  // useEffect(() => {
+  //   const onCursorPositionReceived = (user, pos) => {
+  //     console.log(`position received from ${user}; : ${pos}`);
+  //     inputRef.current[pos].background = '#3FFA';
+  //   };
+  //   connectionContext.on('CursorPositionReceived' + documentId, onCursorPositionReceived);
+
+  //   return () => {
+  //     connectionContext.off('CursorPositionReceived' + documentId, onCursorPositionReceived);
+  //   };
+  // }, [documentId, connectionContext]);
+
+  // const sendCursorPosition = (pos) => {
+  //   if (connectionContext && connectionContext.state === 'Connected') {
+  //     connectionContext.invoke('SendCursorPosition', documentId, pos);
+  //   }
+  // };
+
   return (
     <>
       <input
+        ref={inputRef}
         value={inputText}
         onChange={(e) => {
           setInputText(e.target.value);
           handleDocumentChanged.current(e.target.value);
+          //onType();
+        }}
+        onClick={(e) => {
+          console.log(inputRef.current.selectionStart);
+          //sendCursorPosition(inputRef.current.selectionStart);
         }}
       ></input>
+      {
+        //isTyping && <p>{userTyping} is typing...</p>
+      }
       <div className="active-users-footer">
         {activeUsers &&
           activeUsers.length > 0 &&
-          activeUsers.map((user) => <p key={user}>{user}</p>)}
+          activeUsers.map((user) => (
+            <p key={user} style={{ background: getRandomColor(user) }}>
+              {user}
+            </p>
+          ))}
       </div>
     </>
   );
