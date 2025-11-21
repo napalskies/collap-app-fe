@@ -9,8 +9,8 @@ function DocumentComponent(props) {
   const documentId = props.documentId;
   const [inputText, setInputText] = useState('');
   const [activeUsers, setActiveUsers] = useState([]);
-  //const [isTyping, setIsTyping] = useState(false);
-  //const [userTyping, setUserTyping] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [userTyping, setUserTyping] = useState('');
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -65,29 +65,29 @@ function DocumentComponent(props) {
     }, 200),
   );
 
-  // const indicateTypingStart = useRef(
-  //   throttle(async () => {
-  //     await connectionContext.invoke('UserIsTyping', documentId, true);
-  //   }, 1000),
-  // ).current;
+  const indicateTypingStart = useRef(
+    throttle(async () => {
+      await connectionContext.invoke('UserIsTyping', documentId, true);
+    }, 1000),
+  ).current;
 
-  // const indicateTypingEnd = useRef(
-  //   debounce(async () => {
-  //     await connectionContext.invoke('UserIsTyping', documentId, false);
-  //   }, 1500),
-  // ).current;
+  const indicateTypingEnd = useRef(
+    debounce(async () => {
+      await connectionContext.invoke('UserIsTyping', documentId, false);
+    }, 1500),
+  ).current;
 
-  // const onType = () => {
-  //   indicateTypingStart();
-  //   indicateTypingEnd();
-  // };
+  const onType = () => {
+    indicateTypingStart();
+    indicateTypingEnd();
+  };
 
-  // useEffect(() => {
-  //   return () => {
-  //     indicateTypingStart.cancel();
-  //     indicateTypingEnd.cancel();
-  //   };
-  // }, []);
+  useEffect(() => {
+    return () => {
+      indicateTypingStart.cancel();
+      indicateTypingEnd.cancel();
+    };
+  }, []);
 
   useEffect(() => {
     const debouncedFn = handleDocumentChanged.current;
@@ -142,18 +142,18 @@ function DocumentComponent(props) {
     };
   }, [connectionContext, documentId]);
 
-  // useEffect(() => {
-  //   const onOtherUsersTyping = (userId, isTyping) => {
-  //     console.log(`User ${userId} is typing: ${isTyping}`);
-  //     setUserTyping(userId);
-  //     setIsTyping(isTyping);
-  //   };
-  //   connectionContext.on('OtherUserTyping' + documentId, onOtherUsersTyping);
+  useEffect(() => {
+    const onOtherUsersTyping = (userId, isTyping) => {
+      console.log(`User ${userId} is typing: ${isTyping}`);
+      setUserTyping(userId);
+      setIsTyping(isTyping);
+    };
+    connectionContext.on('OtherUserTyping' + documentId, onOtherUsersTyping);
 
-  //   return () => {
-  //     connectionContext.off('OtherUserTyping' + documentId, onOtherUsersTyping);
-  //   };
-  // }, [documentId, connectionContext]);
+    return () => {
+      connectionContext.off('OtherUserTyping' + documentId, onOtherUsersTyping);
+    };
+  }, [documentId, connectionContext]);
 
   const getRandomColor = (user) => {
     var hash = 0;
@@ -197,9 +197,7 @@ function DocumentComponent(props) {
           //sendCursorPosition(inputRef.current.selectionStart);
         }}
       ></input>
-      {
-        //isTyping && <p>{userTyping} is typing...</p>
-      }
+      {isTyping && <p>{userTyping} is typing...</p>}
       <div className="active-users-footer">
         {activeUsers &&
           activeUsers.length > 0 &&
