@@ -28,32 +28,27 @@ function DocumentComponent(props) {
     const joinWhenConnected = async () => {
       await connectionReady;
       if (connectionContext.state === 'Connected') {
-        await connectionContext.invoke('JoinDocument', documentId);
-      }
-      console.log(connectionContext.connectionId);
-      console.log(getRandomColor(connectionContext.connectionId));
-    };
-
-    joinWhenConnected().catch((err) => console.error('Error in invoking JoinDocument:', err));
-  }, [connectionContext, documentId, connectionReady]);
-
-  useEffect(() => {
-    if (!connectionContext) return;
-
-    const onReconnect = () => {
-      if (connectionContext.state === 'Connected') {
-        connectionContext
+        await connectionContext
           .invoke('JoinDocument', documentId)
           .catch((err) => console.error('JoinDocument failed:', err));
       }
     };
 
-    connectionContext.on('reconnected', onReconnect);
+    joinWhenConnected();
+    connectionContext.on('reconnected', joinWhenConnected);
 
     return () => {
-      connectionContext.off('reconnected', onReconnect);
+      if (connectionContext.state === 'Connected') {
+        const onLeaveDocument = async () => {
+          await connectionContext
+            .invoke('LeaveDocument', documentId)
+            .catch((err) => console.error('LeaveDocument failed:', err));
+        };
+        onLeaveDocument();
+      }
+      connectionContext.off('reconnected', joinWhenConnected);
     };
-  }, [connectionContext, documentId]);
+  }, [connectionContext, documentId, connectionReady]);
 
   const handleDocumentChanged = useRef(
     debounce(async (newValue) => {
@@ -87,6 +82,7 @@ function DocumentComponent(props) {
       indicateTypingStart.cancel();
       indicateTypingEnd.cancel();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -130,17 +126,6 @@ function DocumentComponent(props) {
       connectionContext.off('ActiveUsersUpdated' + documentId, onActiveUsersUpdated);
     };
   }, [documentId, connectionContext]);
-
-  useEffect(() => {
-    return () => {
-      if (connectionContext.state === 'Connected') {
-        const onLeaveDocument = async () => {
-          await connectionContext.invoke('LeaveDocument', documentId);
-        };
-        onLeaveDocument().catch((err) => console.error('Error in invoking LeaveDocument:', err));
-      }
-    };
-  }, [connectionContext, documentId]);
 
   useEffect(() => {
     const onOtherUsersTyping = (userId, isTyping) => {
