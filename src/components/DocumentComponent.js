@@ -190,7 +190,7 @@ function DocumentComponent(props) {
         onChange={(e) => {
           setInputText(e.target.value);
           handleDocumentChanged.current(e.target.value);
-          //onType();
+          onType();
         }}
         onClick={(e) => {
           console.log(inputRef.current.selectionStart);
